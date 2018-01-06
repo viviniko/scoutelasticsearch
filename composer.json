@@ -15,11 +15,18 @@
         "elasticsearch/elasticsearch": "~5.0",
         "laravel/scout": "^3.0"
     },
-	"autoload": {
+    "autoload": {
         "psr-0": {
             "Viviniko\\Scoutelasticsearch": "src"
         }
     },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Viviniko\\Scoutelasticsearch\\ScoutelasticsearchServiceProvider"
+            ]
+        }
+    },
     "minimum-stability": "dev",
-	"prefer-stable": true
+    "prefer-stable": true
 }

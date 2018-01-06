@@ -1,6 +1,6 @@
 <?php
 
-namespace Common\Scoutelasticsearch\Console\Commands;
+namespace Viviniko\Scoutelasticsearch\Console\Commands;
 
 use Elasticsearch\ClientBuilder as ElasticBuilder;
 use Illuminate\Console\Command;

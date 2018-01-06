@@ -1,6 +1,6 @@
 <?php
 
-namespace Common\Scoutelasticsearch;
+namespace Viviniko\Scoutelasticsearch;
 
 use Illuminate\Support\Str;
 use Laravel\Scout\Builder;

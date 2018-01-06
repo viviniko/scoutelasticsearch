@@ -1,11 +1,12 @@
 <?php
 
-namespace Common\Scoutelasticsearch;
+namespace Viviniko\Scoutelasticsearch;
 
-use Common\Scoutelasticsearch\Console\Commands\MappingCommand;
+use Viviniko\Scoutelasticsearch\Console\Commands\MappingCommand;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Laravel\Scout\EngineManager;
 use Elasticsearch\ClientBuilder as ElasticBuilder;
+use Viviniko\Scoutelasticsearch\Console\Commands\RebuildCommand;
 
 class ScoutelasticsearchServiceProvider extends BaseServiceProvider
 {
@@ -18,6 +19,7 @@ class ScoutelasticsearchServiceProvider extends BaseServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 MappingCommand::class,
+                RebuildCommand::class,
             ]);
 
             $this->publishes([
