@@ -139,9 +139,20 @@ class ElasticsearchEngine extends Engine
             $params['body']['query']['bool']['must'] = array_merge($params['body']['query']['bool']['must'] ?? [],
                 $options['numericFilters']);
         }
+        if (property_exists($builder, 'rawBody')) {
+            $params['body'] = array_merge_recursive($params['body'], $builder->rawBody);
+        }
+        if (property_exists($builder, 'rawFilters')) {
+            $params['body']['query'] = array_merge_recursive($params['body']['query'], $builder->rawFilters);
+        }
+        $params['body']['_source'] = false;
+        if (property_exists($builder, 'fields')) {
+            $params['body']['_source'] = $builder->fields;
+        }
         if (empty($params['body']['query']['bool'])) {
             unset($params['body']['query']);
         }
+
         return $this->elastic->search($params);
     }
     /**
