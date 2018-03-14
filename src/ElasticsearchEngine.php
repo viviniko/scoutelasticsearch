@@ -2,6 +2,7 @@
 
 namespace Viviniko\Scoutelasticsearch;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
@@ -16,6 +17,12 @@ class ElasticsearchEngine extends Engine
      * @var string
      */
     protected $index;
+
+    /**
+     * @var int
+     */
+    protected $cacheMinutes = 10;
+
     /**
      * Create a new engine instance.
      *
@@ -27,6 +34,7 @@ class ElasticsearchEngine extends Engine
         $this->elastic = $elastic;
         $this->index = $index;
     }
+
     /**
      * Update the given model in the index.
      *
@@ -52,6 +60,7 @@ class ElasticsearchEngine extends Engine
         });
         $this->elastic->bulk($params);
     }
+
     /**
      * Remove the given model from the index.
      *
@@ -73,6 +82,7 @@ class ElasticsearchEngine extends Engine
         });
         $this->elastic->bulk($params);
     }
+
     /**
      * Perform the given search on the engine.
      *
@@ -86,6 +96,7 @@ class ElasticsearchEngine extends Engine
             'size' => $builder->limit,
         ]));
     }
+
     /**
      * Perform the given search on the engine.
      *
@@ -104,6 +115,7 @@ class ElasticsearchEngine extends Engine
         $result['nbPages'] = $result['hits']['total']/$perPage;
         return $result;
     }
+
     /**
      * Perform the given search on the engine.
      *
@@ -155,6 +167,7 @@ class ElasticsearchEngine extends Engine
 
         return $this->elastic->search($params);
     }
+
     /**
      * Get the filter array for the query.
      *
@@ -166,6 +179,9 @@ class ElasticsearchEngine extends Engine
         $filters = [];
 
         foreach ($builder->wheres as $key => $value) {
+            if (Str::contains($key, ':')) {
+                $key = explode(':',$key)[0];
+            }
             if (is_array($value)) {
                 if (Str::contains($key, '.')) {
                     list ($filter, $leftKey) = explode('.', $key, 2);
@@ -173,6 +189,15 @@ class ElasticsearchEngine extends Engine
                         foreach ($value as $v) {
                             $filters[] = ['term' => [$leftKey => $v]];
                         }
+                    } else if ($filter == 'range') {
+                        $range = [];
+                        if (!empty($value[0]) || $value[0] == 0) {
+                            $range['gte'] = $value[0];
+                        }
+                        if (!empty($value[1]) || $value[1] == 0) {
+                            $range['lte'] = $value[1];
+                        }
+                        $filters[] = ['range' => [$leftKey => $range]];
                     }
                 } else {
                     $filters[] = ['terms' => [$key => array_values($value)]];
@@ -181,9 +206,10 @@ class ElasticsearchEngine extends Engine
                 $filters[] = ['match_phrase' => [$key => $value]];
             }
         }
-
+        
         return $filters;
     }
+
     /**
      * Pluck and return the primary keys of the given results.
      *
@@ -194,6 +220,7 @@ class ElasticsearchEngine extends Engine
     {
         return collect($results['hits']['hits'])->pluck('_id')->values();
     }
+
     /**
      * Map the given results to instances of the given model.
      *
@@ -206,15 +233,20 @@ class ElasticsearchEngine extends Engine
         if (count($results['hits']['total']) === 0) {
             return Collection::make();
         }
-        $keys = collect($results['hits']['hits'])
-            ->pluck('_id')->values()->all();
-        $models = $model->whereIn(
-            $model->getKeyName(), $keys
-        )->get()->keyBy($model->getKeyName());
+        $keys = collect($results['hits']['hits'])->pluck('_id')->values();
+        $models = collect([]);
+        if ($keys->isNotEmpty()) {
+            $models = $keys->map(function ($key) use ($model) {
+                return Cache::remember('elasticsearch.model?:' . $model->getTable() . ',' . $key, $this->cacheMinutes, function () use ($model, $key) {
+                    return $model->where($model->getKeyName(), $key)->first();
+                });
+            })->keyBy($model->getKeyName());
+        }
         return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
             return isset($models[$hit['_id']]) ? $models[$hit['_id']] : null;
         })->filter()->values();
     }
+
     /**
      * Get the total count from a raw result returned by the engine.
      *
@@ -225,6 +257,30 @@ class ElasticsearchEngine extends Engine
     {
         return $results['hits']['total'];
     }
+
+    /**
+     * Set index.
+     *
+     * @param $index
+     * @return $this
+     */
+    public function setIndex($index)
+    {
+        $this->index = $index;
+
+        return $this;
+    }
+
+    /**
+     * Get index
+     *
+     * @return string
+     */
+    public function getIndex()
+    {
+        return $this->index;
+    }
+
     /**
      * Generates the sort if theres any.
      *
