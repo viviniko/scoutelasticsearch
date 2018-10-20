@@ -2,12 +2,14 @@
 
 namespace Viviniko\Scoutelasticsearch;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
+use Closure;
+use Elasticsearch\Client as Elastic;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
-use Elasticsearch\Client as Elastic;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class ElasticsearchEngine extends Engine
 {
@@ -18,10 +20,7 @@ class ElasticsearchEngine extends Engine
      */
     protected $index;
 
-    /**
-     * @var int
-     */
-    protected $cacheMinutes = 10;
+    protected $modelResolver = null;
 
     /**
      * Create a new engine instance.
@@ -206,7 +205,7 @@ class ElasticsearchEngine extends Engine
                 $filters[] = ['match_phrase' => [$key => $value]];
             }
         }
-        
+
         return $filters;
     }
 
@@ -230,21 +229,37 @@ class ElasticsearchEngine extends Engine
      */
     public function map($results, $model)
     {
-        if (count($results['hits']['total']) === 0) {
-            return Collection::make();
+        return call_user_func($this->getModelResolver(), $results, $model);
+    }
+
+    public function getModelResolver()
+    {
+        if (!$this->modelResolver) {
+            return function ($results, $model) {
+                if (count($results['hits']['total']) === 0) {
+                    return Collection::make();
+                }
+
+                $keys = collect($results['hits']['hits'])->pluck('_id')->values();
+                $models = collect([]);
+                if ($keys->isNotEmpty()) {
+                    $models = $model->whereIn($model->getKeyName(), $keys)->get()->keyBy($model->getKeyName());;
+                }
+
+                return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
+                    return $models[$hit['_id']] ?: null;
+                })->filter()->values();
+            };
         }
-        $keys = collect($results['hits']['hits'])->pluck('_id')->values();
-        $models = collect([]);
-        if ($keys->isNotEmpty()) {
-            $models = $keys->map(function ($key) use ($model) {
-                return Cache::remember('elasticsearch.model?:' . $model->getTable() . ',' . $key, $this->cacheMinutes, function () use ($model, $key) {
-                    return $model->where($model->getKeyName(), $key)->first();
-                });
-            })->keyBy($model->getKeyName());
-        }
-        return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
-            return isset($models[$hit['_id']]) ? $models[$hit['_id']] : null;
-        })->filter()->values();
+
+        return $this->modelResolver;
+    }
+
+    public function setModelResolver(Closure $resolver)
+    {
+        $this->modelResolver = $resolver;
+
+        return $this;
     }
 
     /**
