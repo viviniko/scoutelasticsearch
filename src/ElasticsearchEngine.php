@@ -7,8 +7,6 @@ use Elasticsearch\Client as Elastic;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class ElasticsearchEngine extends Engine
@@ -20,7 +18,10 @@ class ElasticsearchEngine extends Engine
      */
     protected $index;
 
-    protected $modelResolver = null;
+    /**
+     * @var array
+     */
+    protected $modelResolvers = [];
 
     /**
      * Create a new engine instance.
@@ -229,35 +230,36 @@ class ElasticsearchEngine extends Engine
      */
     public function map($results, $model)
     {
-        return call_user_func($this->getModelResolver(), $results, $model);
+        return call_user_func($this->getModelResolver($model), $results, $model);
     }
 
-    public function getModelResolver()
+    public function getModelResolver($model)
     {
-        if (!$this->modelResolver) {
-            return function ($results, $model) {
-                if (count($results['hits']['total']) === 0) {
-                    return Collection::make();
-                }
-
-                $keys = collect($results['hits']['hits'])->pluck('_id')->values();
-                $models = collect([]);
-                if ($keys->isNotEmpty()) {
-                    $models = $model->whereIn($model->getKeyName(), $keys)->get()->keyBy($model->getKeyName());;
-                }
-
-                return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
-                    return $models[$hit['_id']] ?: null;
-                })->filter()->values();
-            };
+        if (isset($this->modelResolvers[$model->searchableAs()])) {
+            return $this->modelResolvers[$model->searchableAs()];
         }
 
-        return $this->modelResolver;
+        return function ($results, $model) {
+            if (count($results['hits']['total']) === 0) {
+                return Collection::make();
+            }
+
+            $keys = collect($results['hits']['hits'])->pluck('_id')->values();
+            $models = collect([]);
+            if ($keys->isNotEmpty()) {
+                $models = $model->whereIn($model->getKeyName(), $keys)->get()->keyBy($model->getKeyName());;
+            }
+
+            return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
+                return $models[$hit['_id']] ?: null;
+            })->filter()->values();
+        };
     }
 
-    public function setModelResolver(Closure $resolver)
+    public function registerModelResolver($model, Closure $resolver)
     {
-        $this->modelResolver = $resolver;
+        $model = class_exists($model) ? (new $model)->searchableAs() : $model;
+        $this->modelResolvers[$model] = $resolver;
 
         return $this;
     }
