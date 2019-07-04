@@ -60,7 +60,8 @@ class MappingCommand extends Command
 
             $this->info(json_encode($client->indices()->getMapping([
                 'index' => $index,
-                'type' => $model->searchableAs()
+                'type' => $model->searchableAs(),
+                'include_type_name' => true,
             ])));
         }
 
