@@ -117,6 +117,20 @@ class ElasticsearchEngine extends Engine
     }
 
     /**
+     * Flush all of the model's records from the engine.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return void
+     */
+    public function flush($model)
+    {
+        $this->elastic->delete([
+            'index' => $this->index,
+            'type' => $model->searchableAs()
+        ]);
+    }
+
+    /**
      * Perform the given search on the engine.
      *
      * @param  Builder  $builder
