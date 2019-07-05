@@ -53,7 +53,9 @@ class MappingCommand extends Command
                             'number_of_shards' => 1,
                             'number_of_replicas' => 0,
                         ],
-                        'mappings' => $model->searchableMapping(),
+                        'mappings' => [
+                            $model->searchableAs() => $model->searchableMapping(),
+                        ]
                     ],
                 ]);
             }
