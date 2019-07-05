@@ -42,7 +42,7 @@ class MappingCommand extends Command
             if ($client->indices()->exists(['index' => $index])) {
                 $client->indices()->putMapping([
                     'index' => $index,
-                    'type' => $model->searchableAs(),
+                    'type' => '_doc',
                     'body' => $model->searchableMapping()
                 ]);
             } else {
@@ -53,9 +53,7 @@ class MappingCommand extends Command
                             'number_of_shards' => 1,
                             'number_of_replicas' => 0,
                         ],
-                        'mappings' => [
-                            $model->searchableAs() => $model->searchableMapping(),
-                        ]
+                        'mappings' => $model->searchableMapping()
                     ],
                 ]);
             }
