@@ -62,7 +62,7 @@ class RebuildCommand extends Command
                 }
 
                 $this->info('Mapping model ' . $model);
-                $this->call('scout:mapping', ['model' => $model, 'index' => $tmpIndex]);
+                $this->call('scout:mapping', ['model' => $model, '--index' => $tmpIndex]);
 
                 $engine = app(\Laravel\Scout\EngineManager::class)->engine();
                 $engineIndex = $engine->getIndex();
@@ -73,7 +73,7 @@ class RebuildCommand extends Command
 
                 $this->info('Delete index ' . $index);
                 $this->info('<comment>' . json_encode($client->indices()->delete(['index' => $index])) . '</comment>');
-                $this->call('scout:mapping', ['model' => $model, 'index' => $index]);
+                $this->call('scout:mapping', ['model' => $model, '--index' => $index]);
 
                 $client->indices()->refresh(['index' => $tmpIndex]);
                 $size = data_get($client->count(['index' => $tmpIndex]), 'count', 0);

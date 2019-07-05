@@ -12,7 +12,7 @@ class MappingCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'scout:mapping {model}';
+    protected $signature = 'scout:mapping {model} {--index=}';
 
     /**
      * The console command description.
@@ -36,7 +36,7 @@ class MappingCommand extends Command
 
         $client = ElasticBuilder::create()->setHosts($config['hosts'])->build();
 
-        $index = $config['index'];
+        $index = $this->option('index') ?? $config['index'];
 
         if (method_exists($model, 'searchableMapping')) {
             if ($client->indices()->exists(['index' => $index])) {
