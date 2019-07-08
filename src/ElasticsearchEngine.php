@@ -126,7 +126,7 @@ class ElasticsearchEngine extends Engine
     {
         $this->elastic->delete([
             'index' => $this->index,
-            '_type' => '_doc'
+            'type' => '_doc'
         ]);
     }
 
@@ -141,7 +141,7 @@ class ElasticsearchEngine extends Engine
     {
         $params = [
             'index' => $this->index,
-            '_type' => '_doc',
+            'type' => '_doc',
             'body' => [
                 'query' => [
                     'bool' => [
