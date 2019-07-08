@@ -112,7 +112,7 @@ class ElasticsearchEngine extends Engine
             'from' => (($page * $perPage) - $perPage),
             'size' => $perPage,
         ]);
-        $result['nbPages'] = $result['hits']['total']/$perPage;
+        $result['nbPages'] = $this->getTotalCount($result)/$perPage;
         return $result;
     }
 
@@ -255,7 +255,7 @@ class ElasticsearchEngine extends Engine
         }
 
         return function ($results, $model) {
-            if (count($results['hits']['total']) === 0) {
+            if ($this->getTotalCount($results) === 0) {
                 return Collection::make();
             }
 
@@ -286,7 +286,7 @@ class ElasticsearchEngine extends Engine
      */
     public function getTotalCount($results)
     {
-        return $results['hits']['total'];
+        return $results['hits']['total']['value'];
     }
 
     /**
