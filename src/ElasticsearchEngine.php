@@ -266,7 +266,7 @@ class ElasticsearchEngine extends Engine
             }
 
             return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
-                return $models[$hit['_id']] ?: null;
+                return isset($models[$hit['_id']]) ? $models[$hit['_id']] : false;
             })->filter()->values();
         };
     }
