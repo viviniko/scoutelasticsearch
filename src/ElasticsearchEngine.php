@@ -21,7 +21,7 @@ class ElasticsearchEngine extends Engine
     /**
      * @var array
      */
-    protected $modelResolvers = [];
+    protected static $modelResolvers = [];
 
     /**
      * Create a new engine instance.
@@ -250,8 +250,8 @@ class ElasticsearchEngine extends Engine
 
     public function getModelResolver($model)
     {
-        if (isset($this->modelResolvers[get_class($model)])) {
-            return $this->modelResolvers[get_class($model)];
+        if (isset(self::$modelResolvers[get_class($model)])) {
+            return self::$modelResolvers[get_class($model)];
         }
 
         return function ($results, $model) {
@@ -271,11 +271,9 @@ class ElasticsearchEngine extends Engine
         };
     }
 
-    public function registerModelResolver($model, Closure $resolver)
+    public static function registerModelResolver($model, Closure $resolver)
     {
-        $this->modelResolvers[$model] = $resolver;
-
-        return $this;
+        self::$modelResolvers[$model] = $resolver;
     }
 
     /**
