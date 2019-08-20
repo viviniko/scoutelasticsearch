@@ -250,8 +250,10 @@ class ElasticsearchEngine extends Engine
 
     public function getModelResolver($model)
     {
-        if (isset(self::$modelResolvers[get_class($model)])) {
-            return self::$modelResolvers[get_class($model)];
+        foreach (array_keys(self::$modelResolvers) as $class) {
+            if ($model instanceof $class) {
+                return self::$modelResolvers[$class];
+            }
         }
 
         return function ($results, $model) {
