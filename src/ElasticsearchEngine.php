@@ -245,6 +245,10 @@ class ElasticsearchEngine extends Engine
      */
     public function map(Builder $builder, $results, $model)
     {
+        if ($this->getTotalCount($results) === 0) {
+            return Collection::make();
+        }
+
         return call_user_func($this->getModelResolver($model), $results, $model);
     }
 
@@ -257,10 +261,6 @@ class ElasticsearchEngine extends Engine
         }
 
         return function ($results, $model) {
-            if ($this->getTotalCount($results) === 0) {
-                return Collection::make();
-            }
-
             $keys = collect($results['hits']['hits'])->pluck('_id')->values();
             $models = collect([]);
             if ($keys->isNotEmpty()) {
